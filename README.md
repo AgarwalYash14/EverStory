@@ -12,7 +12,7 @@ EverStory is a feature-rich social media application built using modern web deve
 ### 🖼️ Screenshots
 
 <div align="center">
-  [![3lalHIR.md.png](https://iili.io/3lalHIR.md.png)](https://freeimage.host/i/3lalHIR)
+  ![EverStory](https://i.ibb.co/MxnhkLWT/Main.png)
 </div>
 
 ## 🏗️ Architecture
