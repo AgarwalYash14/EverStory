@@ -1,0 +1,210 @@
+services:
+  # PostgreSQL Databases
+  auth-db:
+    image: postgres:15
+    container_name: EverStory-auth-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: auth_service
+    volumes:
+      - auth-db-data:/var/lib/postgresql/data
+    ports:
+      - "5436:5432"  # Standard port for first PostgreSQL instance
+    networks:
+      - EverStory-network
+
+  image-db:
+    image: postgres:15
+    container_name: EverStory-image-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: image_service
+    volumes:
+      - image-db-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"  # Standard port for second PostgreSQL instance
+    networks:
+      - EverStory-network
+
+  friendship-db:
+    image: postgres:15
+    container_name: EverStory-friendship-db
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: friendship_db
+    volumes:
+      - friendship-db-data:/var/lib/postgresql/data
+    ports:
+      - "5434:5432"  # Standard port for third PostgreSQL instance
+    networks:
+      - EverStory-network
+
+  # Microservices - removed external port mappings to enforce gateway access only
+  auth-service:
+    build:
+      context: ./auth-service
+    container_name: EverStory-auth-service
+    environment:
+      - POSTGRES_SERVER=auth-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=auth_service
+      - SECRET_KEY=your-secret-key-for-jwt-here-please-change-in-production
+    depends_on:
+      - auth-db
+    networks:
+      - EverStory-network
+
+  image-service:
+    build:
+      context: ./image-service
+    container_name: EverStory-image-service
+    environment:
+      - POSTGRES_SERVER=image-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=image_service
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - FRIENDSHIP_SERVICE_URL=http://friendship-service:8000
+    depends_on:
+      - image-db
+      - auth-service
+    networks:
+      - EverStory-network
+
+  friendship-service:
+    build:
+      context: ./friendship-service
+    container_name: EverStory-friendship-service
+    environment:
+      - POSTGRES_SERVER=friendship-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=friendship_db
+      - AUTH_SERVICE_URL=http://auth-service:8000
+    depends_on:
+      - friendship-db
+      - auth-service
+    networks:
+      - EverStory-network
+
+  # WebSocket Service for real-time updates
+  websocket-service:
+    build:
+      context: ./websocket-service
+    container_name: EverStory-websocket-service
+    environment:
+      - POSTGRES_SERVER=image-db
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=image_service
+      - SECRET_KEY=your-secret-key-for-jwt-here-please-change-in-production
+      - AUTH_SERVICE_URL=http://auth-service:8000
+      - IMAGE_SERVICE_URL=http://image-service:8000
+      - FRIENDSHIP_SERVICE_URL=http://friendship-service:8000
+      - REDIS_URL=redis://redis:6379/0
+      - USE_REDIS=true
+    depends_on:
+      - auth-service
+      - image-service
+      - friendship-service
+      - redis
+    networks:
+      - EverStory-network
+
+  # Redis for WebSocket service (used for scaling)
+  redis:
+    image: redis:7-alpine
+    container_name: EverStory-redis
+    ports:
+      - "6379:6379"
+    networks:
+      - EverStory-network
+    volumes:
+      - redis-data:/data
+
+  # API Gateway
+  kong-database:
+    image: postgres:15
+    container_name: EverStory-kong-database
+    environment:
+      POSTGRES_USER: kong
+      POSTGRES_PASSWORD: kong
+      POSTGRES_DB: kong
+    volumes:
+      - kong-db-data:/var/lib/postgresql/data
+    ports:
+      - "5435:5432"  # Added port mapping for Kong database
+    networks:
+      - EverStory-network
+    healthcheck:
+      test: ["CMD", "pg_isready", "-U", "kong"]
+      interval: 5s
+      timeout: 5s
+      retries: 5
+
+  kong-migration:
+    image: kong:3.0
+    container_name: EverStory-kong-migration
+    command: kong migrations bootstrap
+    depends_on:
+      kong-database:
+        condition: service_healthy
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+    networks:
+      - EverStory-network
+    restart: on-failure
+
+  kong-gateway:
+    image: kong:3.0
+    container_name: EverStory-kong-gateway
+    environment:
+      KONG_DATABASE: postgres
+      KONG_PG_HOST: kong-database
+      KONG_PG_USER: kong
+      KONG_PG_PASSWORD: kong
+      KONG_PROXY_ACCESS_LOG: /dev/stdout
+      KONG_PROXY_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_ACCESS_LOG: /dev/stdout
+      KONG_ADMIN_ERROR_LOG: /dev/stderr
+      KONG_ADMIN_LISTEN: 0.0.0.0:8101, 0.0.0.0:8444 ssl
+    ports:
+      - "8080:8000"  # Main Kong proxy endpoint
+      - "8443:8443"  # Kong HTTPS endpoint
+      - "8101:8101"  # Kong Admin API
+      - "8444:8444"  # Kong Admin API HTTPS
+    depends_on:
+      kong-migration:
+        condition: service_completed_successfully
+    networks:
+      - EverStory-network
+    restart: on-failure
+
+  kong-setup:
+    build:
+      context: ./kong-config
+    container_name: EverStory-kong-setup
+    depends_on:
+      kong-gateway:
+        condition: service_started
+    networks:
+      - EverStory-network
+    restart: on-failure
+
+networks:
+  EverStory-network:
+    driver: bridge
+
+volumes:
+  auth-db-data:
+  image-db-data:
+  friendship-db-data:
+  kong-db-data:
+  redis-data:

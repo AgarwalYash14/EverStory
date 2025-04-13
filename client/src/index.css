@@ -1,0 +1,111 @@
+@import url('https://fonts.googleapis.com/css2?family=Poppins:ital,wght@0,100;0,200;0,300;0,400;0,500;0,600;0,700;0,800;0,900;1,100;1,200;1,300;1,400;1,500;1,600;1,700;1,800;1,900&family=Satisfy&display=swap');
+
+@import 'tailwindcss';
+
+/* Define global theme variables with simplified color palette */
+@theme {
+    /* Primary colors - simplified naming */
+    --color-primary-light: #fff;
+    --color-primary: oklch(0.75 0.18 265); /* Main brand color */
+    --color-primary-dark: oklch(0.65 0.14 265);
+
+    /* Secondary colors - simplified naming */
+    --color-secondary-light: oklch(0.85 0.13 195);
+    --color-secondary: oklch(0.7 0.18 195); /* Accent color */
+    --color-secondary-dark: oklch(0.55 0.12 195);
+
+    /* Neutral colors - with better light theme contrast */
+    --color-neutral-lightest: #ffffff;
+    --color-neutral-light: #f3f3f3; /* Slightly darker for better contrast */
+    --color-neutral-medium: #888888;
+    --color-neutral-dark: #333333;
+    --color-neutral-darkest: #000000;
+
+    /* Status colors */
+    --color-success: oklch(0.7 0.18 145);
+    --color-warning: oklch(0.8 0.18 85);
+    --color-error: oklch(0.75 0.18 25);
+
+    /* Border colors - darker in light theme for better visibility */
+    --color-border-light: #d9d9d9; /* Darker than before */
+    --color-border: #c5c5c5; /* Medium border color */
+    --color-border-dark: #444444; /* Dark theme border */
+
+    /* Background colors */
+    --color-bg-light: #ffffff;
+    --color-bg-dark: #000000;
+    --color-bg-card-light: #ffffff;
+    --color-bg-card-dark: #121212;
+
+    /* Scrollbar colors */
+    --scrollbar-track-light: #f1f1f1;
+    --scrollbar-thumb-light: #c1c1c1;
+    --scrollbar-thumb-hover-light: #a8a8a8;
+    --scrollbar-track-dark: #222222;
+    --scrollbar-thumb-dark: #444444;
+    --scrollbar-thumb-hover-dark: #555555;
+
+    /* Font families */
+    --font-Satisfy: 'Satisfy', sans-serif;
+}
+
+/* Use Tailwind's recommended dark mode strategy */
+@custom-variant dark (&:where(.dark, .dark *));
+
+/* Base styles */
+html,
+body {
+    font-family: 'Poppins', sans-serif;
+    @apply antialiased;
+}
+
+body {
+    @apply bg-white dark:bg-black;
+}
+
+/* Placeholder styling */
+::placeholder {
+    font-weight: 300;
+    @apply text-neutral-medium;
+}
+
+/* Custom scrollbar styling */
+::-webkit-scrollbar {
+    width: 8px;
+    height: 8px;
+}
+
+::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-light);
+}
+
+::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-light);
+    border-radius: 8px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover-light);
+}
+
+html.dark ::-webkit-scrollbar-track {
+    background: var(--scrollbar-track-dark);
+}
+
+html.dark ::-webkit-scrollbar-thumb {
+    background: var(--scrollbar-thumb-dark);
+}
+
+html.dark ::-webkit-scrollbar-thumb:hover {
+    background: var(--scrollbar-thumb-hover-dark);
+}
+
+/* Firefox scrollbar styling */
+* {
+    scrollbar-width: thin;
+    scrollbar-color: var(--scrollbar-thumb-light) var(--scrollbar-track-light);
+}
+
+html.dark * {
+    scrollbar-color: var(--scrollbar-thumb-dark) var(--scrollbar-track-dark);
+}
